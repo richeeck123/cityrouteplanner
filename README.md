@@ -1,127 +1,145 @@
 # City Route Planner
 
-A C++ application that finds the shortest path between two locations on a real city route network using OpenStreetMap (OSM) data. The project builds a weighted graph from OSM data, compares Dijkstra's Algorithm and A* Search, benchmarks their performance, and visualizes the computed route on an interactive map.
+City Route Planner is a high-performance C++ backend application paired with a modern, responsive HTML5/JS Leaflet dashboard. The system parses OpenStreetMap (OSM) XML data, builds a weighted, undirected spatial graph representation of a city's road network, executes shortest-path routing algorithms, profiles execution performance, and renders routes on an interactive web interface.
 
-## Demo
-
-### Route Visualization
-
-![City Route Planner Demo](images/demo.png)
+The application serves as a benchmark utility comparing **Dijkstra's Algorithm** and **A* Search** on real-world spatial structures, demonstrating how heuristic-driven exploration reduces search spaces and computation times.
 
 ---
 
-## Features
+## Key Features
 
-- Parses OpenStreetMap (.osm) city route planner data
-- Builds a weighted graph using adjacency lists
-- Computes shortest paths using Dijkstra's Algorithm and A* Search
-- Benchmarks execution time and number of nodes explored
-- Exports the computed route as JSON
-- Visualizes the shortest path on an interactive map using Leaflet
+- **OSM XML Parser**: Extract spatial nodes and highway connections directly from OpenStreetMap data.
+- **Weighted Graph Storage**: Build adjacency list representations where intersections are vertices and road segments are edges weighted by physical distance.
+- **Advanced Pathfinding**:
+  - **Dijkstra's Algorithm**: Guarantees optimal pathing using a min-heap priority queue.
+  - **A* Search**: Guides exploration toward the destination using the Haversine formula as a consistent heuristic.
+  - **Breadth-First Search (BFS)**: Traverses nodes level-by-level as an unweighted comparison.
+- **Microsecond Benchmarking**: Measures and compares runtime durations and total search nodes explored.
+- **Full-Screen Interactive Map Dashboard**:
+  - Light/Dark map themes using CartoDB tile layers.
+  - Path rendering with custom start and destination markers.
+  - Click-to-copy coordinates utility to easily capture inputs for the C++ terminal.
+- **Automated Documentation Generator**: A Python script to output a complete Microsoft Word technical report (`City_Route_Planner_Report.docx`).
 
 ---
 
-## Project Structure
+## System Architecture
 
-```text
-city_route_planner/
-│
-├── data/
-│   └── city.osm
-│
-├── images/
-│   └── demo.png
-│
-├── output/
-│   └── path_output.json
-│
-├── src/
-│   ├── Graph.h
-│   ├── Parser.h
-│   ├── Algorithms.h
-│   ├── Benchmark.h
-│   └── main.cpp
-│
-├── map.html
-└── README.md
+The project consists of a decoupled C++ backend and a web-based frontend:
+
+```
+[ OSM Map Data (city.osm) ]
+             │
+             ▼
+      [ Parser.h ]
+             │
+             ▼
+      [ Graph.h ] <─── [ Algorithms.h ] ───> [ Benchmark.h ]
+             │
+             ▼
+    [ main.cpp (Driver) ]
+             │
+             ▼
+[ Route Path JSON (path_output.json) ]
+             │
+             ▼
+    [ map.html (Web Dashboard) ]
 ```
 
 ---
 
-## How It Works
+## Project Structure & File Layout
 
-1. Parse the OpenStreetMap (.osm) file.
-2. Build a weighted graph where intersections are nodes and roads are weighted edges.
-3. Convert the input GPS coordinates to the nearest graph nodes.
-4. Run Dijkstra's Algorithm and A* Search.
-5. Compare runtime and nodes explored.
-6. Export the computed path as a JSON file.
-7. Display the route on an interactive map.
-
----
-
-## Technologies Used
-
-- C++
-- STL
-- OpenStreetMap (OSM)
-- Leaflet.js
+- **`src/`**: Contains the C++ header and source files:
+  - **[Graph.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Graph.h)**: Defines the custom GPS coordinate `Node` struct, the mathematical `haversine()` calculator, and the `Graph` class which stores active intersections and weighted adjacency lists.
+  - **[Parser.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Parser.h)**: Parses OpenStreetMap XML files (`.osm`) by detecting nodes and highways, building edge connections sequentially.
+  - **[Algorithms.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Algorithms.h)**: Houses pathfinding algorithms (Dijkstra, A*, BFS) and the coordinate resolution utility `nearestNode()`.
+  - **[Benchmark.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Benchmark.h)**: Profiles search durations in microseconds and counts the number of nodes explored for each run.
+  - **[main.cpp](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/main.cpp)**: The main entry point. Coordinates console inputs, executes paths, and exports results.
+- **`data/`**: Holds spatial maps (e.g. `city.osm`).
+- **`output/`**: Destination folder for the serialized route coordinates (`path_output.json`).
+- **`map.html`**: A full-screen Leaflet.js interactive map dashboard featuring a floating metrics panel, coordinate picker, and theme switching.
+- **`generate_report.py`**: A Python script that compiles the complete technical layout and line-by-line code annotations into `City_Route_Planner_Report.docx`.
 
 ---
 
-## Building and Running
+## Algorithm Details
 
-Compile the project from the project root.
+### 1. Haversine Distance
+The geodesic distance between two spherical coordinates is calculated as:
+$$d = 2 \cdot R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta \text{lat}}{2}\right) + \cos(\text{lat}_1) \cdot \cos(\text{lat}_2) \cdot \sin^2\left(\frac{\Delta \text{lon}}{2}\right)}\right)$$
+Where $R = 6371.0\text{ km}$. This distance is used as edge weights in the graph and serves as the consistent heuristic for A* Search.
 
+### 2. Dijkstra's Algorithm
+Finds shortest paths in weighted graphs. It relaxes node distances outward from the source using a priority queue.
+- **Time Complexity**: $O((V + E) \log V)$
+- **Space Complexity**: $O(V)$
+
+### 3. A* Search
+Implements heuristic-driven pathfinding. It relaxes nodes prioritizing those minimizing:
+$$f(n) = g(n) + h(n)$$
+Where $g(n)$ is the cost from the start, and $h(n)$ is the Haversine distance to the destination. Since $h(n)$ is admissible (never overestimates distance), the path is guaranteed to be optimal while checking up to 90% fewer nodes.
+- **Time Complexity**: $O((V + E) \log V)$ (practically much faster than Dijkstra)
+- **Space Complexity**: $O(V)$
+
+### 4. Breadth-First Search (BFS)
+Explores nodes level-by-level, assuming all edge weights are $1.0$. Used as a baseline unweighted control.
+- **Time/Space Complexity**: $O(V + E)$ / $O(V)$
+
+---
+
+## Building and Running the C++ App
+
+### Compilation
+Compile the application using a C++17 compatible compiler:
 ```bash
 g++ -std=c++17 src/main.cpp -Isrc -o planner
 ```
 
-Run the application.
-
+### Execution
+Run the compiled executable:
 ```bash
 ./planner
 ```
 
----
-
-## Viewing the Route
-
-Start a local web server.
-
-```bash
-python3 -m http.server 8000
-```
-
-Open your browser and visit:
-
-```
-http://localhost:8000/map.html
-```
+Upon launching, the app will:
+1. Parse the OSM map data file (`data/city.osm`).
+2. Display the total nodes and edges resolved.
+3. Prompt you to enter coordinates (Latitude/Longitude) for the source and destination.
+4. Execute Dijkstra's and A* search algorithms.
+5. Print performance comparison stats and export the resulting path coordinates to `output/path_output.json`.
 
 ---
 
-## Sample Output
+## Viewing the Interactive Web Dashboard
 
-```text
-City Route Planner
+To visualize the computed route on the map:
 
-Nodes : 92745
-Edges : 23271
+1. Launch a local web server from the project directory:
+   ```bash
+   python -m http.server 8000
+   ```
+2. Open your browser and navigate to:
+   ```text
+   http://localhost:8000/map.html
+   ```
 
-Running algorithms...
-
-Dijkstra: 2.27 km | 4041 nodes | 44175 us
-A*:       2.27 km | 449 nodes | 24968 us
-
-A* speedup: 9.00x fewer nodes visited
-```
+### Dashboard Features
+- **Floating Panel**: View the path metrics (distance in km and active algorithm).
+- **Theme Switcher**: Tap the theme toggle button in the header to switch between Light (`CartoDB Positron`) and Dark (`CartoDB Dark Matter`) visual layers.
+- **Coordinate Picker**: Click anywhere on the map to display its latitude/longitude. Click **Copy Coordinates** to copy a copy-pasteable format (e.g., `18.9219 72.8347`) to insert directly into your running C++ console planner application.
 
 ---
 
-## Future Improvements
+## Technical Word Report
 
-- Faster nearest-node search using spatial indexing (KD-Tree / R-Tree)
-- Support for larger city maps
-- Turn-by-turn directions
-- Interactive GUI for entering source and destination coordinates
+To generate the technical report:
+1. Ensure the required Python library is installed:
+   ```bash
+   pip install python-docx
+   ```
+2. Run the script:
+   ```bash
+   python generate_report.py
+   ```
+This will compile a Microsoft Word file `City_Route_Planner_Report.docx` with folders overview, algorithm details, and a line-by-line code explanation.
