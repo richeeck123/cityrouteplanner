@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Route Planner</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-glass-light: rgba(255, 255, 255, 0.85);
+            --bg-glass-dark: rgba(15, 23, 42, 0.85);
+            --border-glass-light: rgba(255, 255, 255, 0.4);
+            --border-glass-dark: rgba(30, 41, 59, 0.4);
+            --text-light: #0f172a;
+            --text-dark: #f8fafc;
+            --text-secondary-light: #475569;
+            --text-secondary-dark: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #6366f1;
+            
+            /* Active variables */
+            --bg-panel: var(--bg-glass-light);
+            --border-panel: var(--border-glass-light);
+            --text: var(--text-light);
+            --text-secondary: var(--text-secondary-light);
+        }
+
+        body.dark-theme {
+            --bg-panel: var(--bg-glass-dark);
+            --border-panel: var(--border-glass-dark);
+            --text: var(--text-dark);
+            --text-secondary: var(--text-secondary-dark);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background-color: #f1f5f9;
+            transition: background-color 0.3s ease;
+        }
+
+        body.dark-theme {
+            background-color: #0b0f19;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Floating Card Panel */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            width: 380px;
+            max-width: calc(100vw - 40px);
+            background: var(--bg-panel);
+            border: 1px solid var(--border-panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+            padding-bottom: 14px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .logo-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-toggle {
+            background: rgba(128, 128, 128, 0.1);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(128, 128, 128, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* Route metrics style */
+        .metric-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .metric-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .metric-card {
+            background: rgba(128, 128, 128, 0.05);
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .dark-theme .badge {
+            background: rgba(59, 130, 246, 0.25);
+            color: #60a5fa;
+        }
+
+        /* Coordinate Picker Utility */
+        .picker-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid rgba(128, 128, 128, 0.15);
+            padding-top: 16px;
+        }
+
+        .picker-instructions {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .coordinate-display {
+            background: rgba(128, 128, 128, 0.05);
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .coordinate-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .coordinate-coord {
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .btn-copy {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-copy:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-copy:active {
+            transform: scale(0.98);
+        }
+
+        /* Leaflet custom overrides */
+        .leaflet-bar {
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+            border-radius: 10px !important;
+            overflow: hidden;
+        }
+
+        .leaflet-bar a {
+            background-color: var(--bg-panel) !important;
+            color: var(--text) !important;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1) !important;
+            transition: all 0.2s;
+        }
+
+        .leaflet-bar a:hover {
+            background-color: rgba(128, 128, 128, 0.15) !important;
+        }
+
+        .leaflet-container {
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            z-index: 2000;
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-icon {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body class="light-theme">
+
+    <!-- Floating Control Panel -->
+    <div class="control-panel">
+        <div class="header">
+            <div class="logo-area">
+                <div class="logo-icon">🗺️</div>
+                <div class="logo-title">City Route Planner</div>
+            </div>
+            <button class="theme-toggle" id="themeBtn" title="Toggle Light/Dark Theme">
+                <!-- Moon icon -->
+                <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="metric-section">
+            <div class="metric-title">Active Route</div>
+            <div class="metric-card">
+                <div class="metric-box">
+                    <span class="metric-label">Algorithm</span>
+                    <span id="routeAlgo" class="badge">Loading...</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-label">Distance</span>
+                    <span id="routeDist" class="metric-value">-- km</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="picker-section">
+            <div class="metric-title">Coordinate Picker</div>
+            <p class="picker-instructions">
+                Click anywhere on the map to capture coordinates. You can copy them for copy-pasting as source/destination inputs in the terminal.
+            </p>
+            <div class="coordinate-display">
+                <div class="coordinate-row">
+                    <span class="metric-label">Latitude</span>
+                    <span id="latVal" class="coordinate-coord">-</span>
+                </div>
+                <div class="coordinate-row">
+                    <span class="metric-label">Longitude</span>
+                    <span id="lonVal" class="coordinate-coord">-</span>
+                </div>
+                <button class="btn-copy" id="copyBtn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    Copy Coordinates
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map container -->
+    <div id="map"></div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">✓</span>
+        <span id="toastMsg">Coordinates copied to clipboard!</span>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Set up Map
+        const map = L.map("map", {
+            zoomControl: false // disable default to position it custom
+        });
+
+        // Add zoom control at top right
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        // Tile layers
+        const lightMap = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        const darkMap = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Default to light map
+        lightMap.addTo(map);
+
+        // Theme management
+        const body = document.body;
+        const themeBtn = document.getElementById("themeBtn");
+        const themeIcon = document.getElementById("themeIcon");
+        let activeTheme = 'light';
+
+        themeBtn.addEventListener("click", () => {
+            if (activeTheme === 'light') {
+                body.className = "dark-theme";
+                map.removeLayer(lightMap);
+                darkMap.addTo(map);
+                activeTheme = 'dark';
+                // Switch icon to sun
+                themeIcon.innerHTML = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`;
+            } else {
+                body.className = "light-theme";
+                map.removeLayer(darkMap);
+                lightMap.addTo(map);
+                activeTheme = 'light';
+                // Switch icon to moon
+                themeIcon.innerHTML = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>`;
+            }
+        });
+
+        // Load Route Path
+        fetch("output/path_output.json")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("No route path exported yet. Run the planner binary first!");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.path || data.path.length === 0) {
+                    document.getElementById("routeAlgo").innerHTML = "No Route";
+                    document.getElementById("routeDist").innerText = "-- km";
+                    return;
+                }
+
+                // Update UI elements
+                document.getElementById("routeAlgo").innerHTML = data.algo;
+                document.getElementById("routeDist").innerText = data.dist_km.toFixed(2) + " km";
+
+                // Draw path shadow (for glowing/sleek 3D effect)
+                L.polyline(data.path, {
+                    color: '#1e293b',
+                    weight: 8,
+                    opacity: 0.15
+                }).addTo(map);
+
+                // Draw path line (active route)
+                const routeLine = L.polyline(data.path, {
+                    color: '#3b82f6',
+                    weight: 5,
+                    opacity: 0.85,
+                    lineJoin: 'round'
+                }).addTo(map);
+
+                // Add start/end circle markers
+                const startPt = data.path[0];
+                const endPt = data.path[data.path.length - 1];
+
+                // Start Marker (emerald green)
+                L.circleMarker(startPt, {
+                    radius: 7,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2.5,
+                    fillOpacity: 1
+                }).bindPopup(`<b>Start Location</b><br>Lat: ${startPt[0]}<br>Lon: ${startPt[1]}`).addTo(map);
+
+                // End Marker (rose/red)
+                L.circleMarker(endPt, {
+                    radius: 7,
+                    fillColor: '#ef4444',
+                    color: '#ffffff',
+                    weight: 2.5,
+                    fillOpacity: 1
+                }).bindPopup(`<b>Destination Location</b><br>Lat: ${endPt[0]}<br>Lon: ${endPt[1]}`).addTo(map);
+
+                // Fit view to route bounds
+                map.fitBounds(routeLine.getBounds(), {
+                    padding: [40, 40]
+                });
+            })
+            .catch(error => {
+                console.warn(error.message);
+                document.getElementById("routeAlgo").innerHTML = "None";
+                document.getElementById("routeDist").innerText = "No route found";
+                // Default coordinates fit to Mumbai (where OSM coordinates typically reside in this repo's sample data)
+                map.setView([18.9282, 72.8341], 15);
+            });
+
+        // Click on map to capture coordinates
+        let selectedLat = null;
+        let selectedLon = null;
+        let clickMarker = null;
+
+        map.on("click", (e) => {
+            selectedLat = e.latlng.lat.toFixed(6);
+            selectedLon = e.latlng.lng.toFixed(6);
+
+            document.getElementById("latVal").innerText = selectedLat;
+            document.getElementById("lonVal").innerText = selectedLon;
+            document.getElementById("copyBtn").removeAttribute("disabled");
+
+            // Place/move selected point marker
+            if (clickMarker) {
+                clickMarker.setLatLng(e.latlng);
+            } else {
+                clickMarker = L.circleMarker(e.latlng, {
+                    radius: 6,
+                    fillColor: '#6366f1',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 0.9
+                }).addTo(map);
+            }
+        });
+
+        // Copy button trigger
+        const copyBtn = document.getElementById("copyBtn");
+        const toast = document.getElementById("toast");
+
+        copyBtn.addEventListener("click", () => {
+            if (selectedLat && selectedLon) {
+                // Copy as comma separated, or copy each separately?
+                // Standard terminal input asks for lat and lon one by one.
+                // We'll copy "lat, lon" or just make it easy to grab. Let's write them as lat,lon space separated
+                const textToCopy = `${selectedLat} ${selectedLon}`;
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // Show toast
+                    toast.classList.add("show");
+                    setTimeout(() => {
+                        toast.classList.remove("show");
+                    }, 2500);
+                }).catch(err => {
+                    console.error("Could not copy coordinates", err);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
