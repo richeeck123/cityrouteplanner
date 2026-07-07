@@ -19,7 +19,7 @@ The application serves as a benchmark utility comparing **Dijkstra's Algorithm**
   - Light/Dark map themes using CartoDB tile layers.
   - Path rendering with custom start and destination markers.
   - Click-to-copy coordinates utility to easily capture inputs for the C++ terminal.
-- **Automated Documentation Generator**: A Python script to output a complete Microsoft Word technical report (`City_Route_Planner_Report.docx`).
+
 
 ---
 
@@ -48,20 +48,6 @@ The project consists of a decoupled C++ backend and a web-based frontend:
 
 ---
 
-## Project Structure & File Layout
-
-- **`src/`**: Contains the C++ header and source files:
-  - **[Graph.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Graph.h)**: Defines the custom GPS coordinate `Node` struct, the mathematical `haversine()` calculator, and the `Graph` class which stores active intersections and weighted adjacency lists.
-  - **[Parser.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Parser.h)**: Parses OpenStreetMap XML files (`.osm`) by detecting nodes and highways, building edge connections sequentially.
-  - **[Algorithms.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Algorithms.h)**: Houses pathfinding algorithms (Dijkstra, A*, BFS) and the coordinate resolution utility `nearestNode()`.
-  - **[Benchmark.h](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/Benchmark.h)**: Profiles search durations in microseconds and counts the number of nodes explored for each run.
-  - **[main.cpp](file:///c:/Users/ghosh/Downloads/roadnetworks-parser-improvements%20(1)/roadnetworks-parser-improvements/src/main.cpp)**: The main entry point. Coordinates console inputs, executes paths, and exports results.
-- **`data/`**: Holds spatial maps (e.g. `city.osm`).
-- **`output/`**: Destination folder for the serialized route coordinates (`path_output.json`).
-- **`map.html`**: A full-screen Leaflet.js interactive map dashboard featuring a floating metrics panel, coordinate picker, and theme switching.
-- **`generate_report.py`**: A Python script that compiles the complete technical layout and line-by-line code annotations into `City_Route_Planner_Report.docx`.
-
----
 
 ## Algorithm Details
 
