@@ -116,16 +116,3 @@ To visualize the computed route on the map:
 - **Coordinate Picker**: Click anywhere on the map to display its latitude/longitude. Click **Copy Coordinates** to copy a copy-pasteable format (e.g., `18.9219 72.8347`) to insert directly into your running C++ console planner application.
 
 ---
-
-## Technical Word Report
-
-To generate the technical report:
-1. Ensure the required Python library is installed:
-   ```bash
-   pip install python-docx
-   ```
-2. Run the script:
-   ```bash
-   python generate_report.py
-   ```
-This will compile a Microsoft Word file `City_Route_Planner_Report.docx` with folders overview, algorithm details, and a line-by-line code explanation.
